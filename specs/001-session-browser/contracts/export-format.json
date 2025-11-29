@@ -1,0 +1,197 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HTML Export Format",
+  "description": "Self-contained HTML export structure for Claude Code sessions",
+  "version": "1.0.0",
+
+  "format": {
+    "name": "Self-contained HTML",
+    "mimeType": "text/html",
+    "extension": ".html",
+    "characteristics": [
+      "No external dependencies (all CSS/JS embedded)",
+      "Viewable in any modern browser offline",
+      "Preserves markdown rendering and syntax highlighting",
+      "Responsive design (mobile-friendly)",
+      "Printable (clean print stylesheet)"
+    ]
+  },
+
+  "structure": {
+    "html": {
+      "head": {
+        "meta": [
+          { "charset": "UTF-8" },
+          { "viewport": "width=device-width, initial-scale=1.0" },
+          { "description": "Exported Claude Code session" }
+        ],
+        "title": "Session: {session.summary}",
+        "style": {
+          "description": "Embedded Tailwind CSS (purged) + syntax highlighting theme",
+          "sources": [
+            "Tailwind CSS utilities (inline, purged)",
+            "highlight.js theme (e.g., github-dark)",
+            "Custom print styles"
+          ],
+          "estimatedSize": "15-25KB"
+        }
+      },
+      "body": {
+        "structure": [
+          {
+            "element": "header",
+            "className": "session-header",
+            "content": {
+              "title": "{session.summary}",
+              "metadata": {
+                "project": "{session.projectName}",
+                "date": "{session.createdAt formatted}",
+                "messages": "{session.messageCount}",
+                "tokens": "{session.tokenUsage.total}",
+                "duration": "{session.duration formatted}"
+              }
+            }
+          },
+          {
+            "element": "main",
+            "className": "session-content",
+            "content": {
+              "description": "Chronological conversation",
+              "messages": [
+                {
+                  "element": "div",
+                  "className": "message message--user | message--assistant",
+                  "children": [
+                    {
+                      "element": "div",
+                      "className": "message__header",
+                      "content": "{role} • {timestamp}"
+                    },
+                    {
+                      "element": "div",
+                      "className": "message__content",
+                      "content": "{markdown rendered HTML}"
+                    },
+                    {
+                      "element": "div",
+                      "className": "message__tools",
+                      "condition": "if toolCalls.length > 0",
+                      "children": [
+                        {
+                          "element": "details",
+                          "className": "tool-call",
+                          "children": [
+                            {
+                              "element": "summary",
+                              "content": "🔧 {toolName}"
+                            },
+                            {
+                              "element": "pre",
+                              "className": "tool-output",
+                              "content": "{tool result}"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "element": "footer",
+            "className": "session-footer",
+            "content": {
+              "generator": "Claude Trace UI v{version}",
+              "exportDate": "{export timestamp}",
+              "attribution": "Generated with Claude Code"
+            }
+          }
+        ]
+      }
+    }
+  },
+
+  "example": {
+    "description": "Minimal HTML template structure",
+    "template": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Session: {summary}</title>\n  <style>\n    /* Embedded Tailwind + highlight.js styles */\n  </style>\n</head>\n<body class=\"bg-gray-50 text-gray-900\">\n  <header class=\"border-b bg-white p-6\">\n    <h1 class=\"text-2xl font-bold\">{summary}</h1>\n    <div class=\"text-sm text-gray-600 mt-2\">\n      <span>{projectName}</span> • \n      <span>{date}</span> • \n      <span>{messageCount} messages</span>\n    </div>\n  </header>\n  <main class=\"max-w-4xl mx-auto p-6\">\n    <!-- Messages here -->\n  </main>\n  <footer class=\"border-t bg-white p-4 text-center text-sm text-gray-500\">\n    Generated with Claude Trace UI\n  </footer>\n</body>\n</html>"
+  },
+
+  "cssClasses": {
+    "description": "Tailwind utility classes used in export",
+    "layout": [
+      "max-w-4xl", "mx-auto", "p-4", "p-6",
+      "flex", "flex-col", "gap-4", "space-y-4"
+    ],
+    "typography": [
+      "text-sm", "text-base", "text-lg", "text-xl", "text-2xl",
+      "font-bold", "font-medium", "font-mono"
+    ],
+    "colors": [
+      "bg-white", "bg-gray-50", "bg-gray-100",
+      "text-gray-600", "text-gray-900",
+      "border", "border-gray-200"
+    ],
+    "components": [
+      "message", "message--user", "message--assistant",
+      "message__header", "message__content", "message__tools",
+      "tool-call", "tool-output"
+    ]
+  },
+
+  "javascript": {
+    "description": "Optional embedded JavaScript for interactivity",
+    "features": [
+      "Collapsible tool outputs (details/summary)",
+      "Copy code button for code blocks",
+      "Search within session (Ctrl+F enhancement)",
+      "Dark mode toggle (respects prefers-color-scheme)"
+    ],
+    "estimatedSize": "5-10KB minified",
+    "dependencies": "None (vanilla JS)"
+  },
+
+  "accessibility": {
+    "description": "WCAG 2.1 AA compliance",
+    "features": [
+      "Semantic HTML5 elements",
+      "Proper heading hierarchy (h1 → h6)",
+      "ARIA labels for interactive elements",
+      "Keyboard navigation support",
+      "Focus indicators",
+      "Sufficient color contrast (4.5:1 minimum)"
+    ]
+  },
+
+  "fileNaming": {
+    "pattern": "{projectName}_{sessionUuid}_{timestamp}.html",
+    "examples": [
+      "myProject_abc123_20251129_143022.html",
+      "claudeTrace_def456_20251130_091500.html"
+    ],
+    "rules": [
+      "Replace spaces in projectName with underscores",
+      "Sanitize special characters",
+      "Timestamp format: YYYYMMDDHHmmss"
+    ]
+  },
+
+  "performance": {
+    "targets": {
+      "fileSize": {
+        "small": "<100KB (session with <50 messages)",
+        "medium": "100-500KB (session with 50-200 messages)",
+        "large": "500KB-2MB (session with 200+ messages)"
+      },
+      "loadTime": "<1s for typical session in modern browser",
+      "renderTime": "<500ms for initial paint"
+    },
+    "optimizations": [
+      "Minified CSS/JS",
+      "PurgeCSS to remove unused styles",
+      "Lazy loading of code blocks (if >50)",
+      "Print stylesheet in @media print"
+    ]
+  }
+}

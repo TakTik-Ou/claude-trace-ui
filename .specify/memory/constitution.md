@@ -1,50 +1,89 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# Claude Trace UI Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Real-Time Performance
+Real-time rendering is paramount for developer experience:
+- UI must update within 100ms of data changes
+- Virtual scrolling required for large traces (>100 items)
+- No blocking operations on main thread
+- Progressive loading for large session files
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Data Integrity
+Session data is sacred and immutable:
+- UI is read-only - never modify source session files
+- Handle malformed/incomplete session data gracefully
+- Preserve all trace metadata and timing information
+- Support both active sessions and archived snapshots
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Developer-Centric Design
+Optimize for debugging workflow efficiency:
+- Keyboard navigation for all primary actions
+- Search/filter must be instant (<50ms)
+- Collapse/expand state persists across refreshes
+- Export/share capabilities for collaboration
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. File Format Agnostic
+Support multiple trace sources:
+- Claude Code session files (~/.claude/projects/*/*/journal.jsonl)
+- claude-trace JSON format (streaming and complete)
+- Extensible parser architecture for future formats
+- Graceful degradation for unknown properties
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Progressive Enhancement
+Start simple, add sophistication iteratively:
+- Core viewer first (tree view, basic search)
+- Then advanced features (diff view, timeline, metrics)
+- No premature abstraction - YAGNI principles
+- Each feature must justify complexity cost
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Technical Constraints
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### Stack Requirements
+- TypeScript for type safety across trace formats
+- React 18+ for concurrent rendering
+- Tailwind CSS for rapid UI iteration
+- No heavyweight frameworks (keep bundle <500KB)
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+### Browser Support
+- Modern browsers only (ES2022+)
+- Chrome/Edge, Firefox, Safari latest 2 versions
+- No IE11 or legacy support needed
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### Performance Standards
+- Initial load: <2s for 1000-item trace
+- Search/filter: <50ms response time
+- Memory: <200MB for typical sessions
+- CPU: <10% idle, <30% during updates
+
+## Development Workflow
+
+### Testing Strategy
+- Unit tests for parsers and data transformations
+- Integration tests for file loading and rendering
+- Visual regression tests for UI components
+- Manual testing for UX flows
+
+### Code Quality
+- ESLint + Prettier enforced via pre-commit
+- TypeScript strict mode enabled
+- No `any` types except in parser boundary layer
+- All exports documented with JSDoc
+
+### Review Process
+- Self-review before commit
+- Automated checks must pass (lint, type, test)
+- Performance profiling for data-heavy features
+- Accessibility review for new UI components
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution defines the non-negotiable principles for Claude Trace UI development. All implementation decisions must align with these principles. When principles conflict, prioritize in order: Data Integrity > Real-Time Performance > Developer-Centric Design > Progressive Enhancement > File Format Agnostic.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+Amendments require:
+1. Documented rationale for change
+2. Impact analysis on existing features
+3. Migration plan if breaking changes
+4. Approval before implementation
+
+**Version**: 1.0.0 | **Ratified**: 2025-11-29 | **Last Amended**: 2025-11-29

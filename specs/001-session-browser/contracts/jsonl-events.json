@@ -1,0 +1,153 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Claude Code JSONL Event Types",
+  "description": "Schema for journal.jsonl event types from ~/.claude/projects",
+  "version": "1.0.0",
+
+  "eventTypes": {
+    "summary": {
+      "type": "object",
+      "description": "Session summary (typically first event)",
+      "properties": {
+        "type": { "const": "summary" },
+        "summary": { "type": "string" },
+        "timestamp": { "type": "number" },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "uuid": { "type": "string" },
+            "version": { "type": "string" },
+            "workingDirectory": { "type": "string" },
+            "gitBranch": { "type": ["string", "null"] }
+          }
+        }
+      },
+      "required": ["type", "summary", "timestamp"]
+    },
+
+    "user": {
+      "type": "object",
+      "description": "User message",
+      "properties": {
+        "type": { "const": "user" },
+        "content": { "type": "string" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["type", "content", "timestamp"]
+    },
+
+    "assistant": {
+      "type": "object",
+      "description": "Assistant response",
+      "properties": {
+        "type": { "const": "assistant" },
+        "content": { "type": "string" },
+        "timestamp": { "type": "number" },
+        "usage": {
+          "type": "object",
+          "properties": {
+            "input": { "type": "number" },
+            "output": { "type": "number" },
+            "cache_creation": { "type": "number" },
+            "cache_read": { "type": "number" }
+          }
+        }
+      },
+      "required": ["type", "content", "timestamp"]
+    },
+
+    "tool_use": {
+      "type": "object",
+      "description": "Tool invocation",
+      "properties": {
+        "type": { "const": "tool_use" },
+        "tool_use_id": { "type": "string" },
+        "name": { "type": "string" },
+        "parameters": { "type": "object" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["type", "tool_use_id", "name", "parameters", "timestamp"]
+    },
+
+    "tool_result": {
+      "type": "object",
+      "description": "Tool execution result",
+      "properties": {
+        "type": { "const": "tool_result" },
+        "tool_use_id": { "type": "string" },
+        "output": { "type": ["string", "object"] },
+        "error": { "type": "string" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["type", "tool_use_id", "timestamp"]
+    },
+
+    "file-history-snapshot": {
+      "type": "object",
+      "description": "File state snapshot",
+      "properties": {
+        "type": { "const": "file-history-snapshot" },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": { "type": "string" },
+              "content": { "type": "string" },
+              "operation": { "enum": ["read", "write", "edit"] }
+            }
+          }
+        },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["type", "files", "timestamp"]
+    },
+
+    "system-reminder": {
+      "type": "object",
+      "description": "System-generated context reminder",
+      "properties": {
+        "type": { "const": "system-reminder" },
+        "content": { "type": "string" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["type", "content", "timestamp"]
+    },
+
+    "budget": {
+      "type": "object",
+      "description": "Token budget information",
+      "properties": {
+        "type": { "const": "budget" },
+        "used": { "type": "number" },
+        "total": { "type": "number" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["type", "used", "total", "timestamp"]
+    }
+  },
+
+  "parsingRules": {
+    "description": "Guidelines for parsing journal.jsonl files",
+    "rules": [
+      "Each line is a separate JSON object (newline-delimited)",
+      "Events are chronologically ordered by timestamp",
+      "Handle malformed lines gracefully (skip or log error)",
+      "Unknown event types should be preserved as 'unknown' type",
+      "Timestamp is Unix milliseconds (number)",
+      "File encoding is UTF-8"
+    ]
+  },
+
+  "unknownEvent": {
+    "type": "object",
+    "description": "Fallback for unrecognized event types",
+    "properties": {
+      "type": { "const": "unknown" },
+      "originalType": { "type": "string" },
+      "raw": { "type": "object", "description": "Original event data" },
+      "timestamp": { "type": "number" }
+    },
+    "required": ["type", "originalType", "raw", "timestamp"]
+  }
+}
