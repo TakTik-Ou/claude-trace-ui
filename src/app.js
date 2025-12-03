@@ -230,6 +230,9 @@ async function loadSessions(forceRefresh = false) {
     const projects = searchIndex?.getProjects() || [];
     filterPanel?.setProjects(projects);
 
+    // Apply initial filters (default: yesterday to now)
+    performSearchAndFilter();
+
     loadingIndicator?.hide();
     sessionList?.setLoading(false);
   } catch (error) {

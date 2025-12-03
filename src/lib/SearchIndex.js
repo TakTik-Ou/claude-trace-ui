@@ -232,11 +232,11 @@ export class SearchIndex extends EventEmitter {
         return false;
       }
 
-      // Date range filter
-      if (options.dateFrom && session.createdAt < options.dateFrom) {
+      // Date range filter (uses updatedAt for more intuitive "recent activity" filtering)
+      if (options.dateFrom && session.updatedAt < options.dateFrom) {
         return false;
       }
-      if (options.dateTo && session.createdAt > options.dateTo) {
+      if (options.dateTo && session.updatedAt > options.dateTo) {
         return false;
       }
 

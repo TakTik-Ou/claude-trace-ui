@@ -25,10 +25,16 @@ export class FilterPanel extends EventEmitter {
     /** @type {string[]} */
     this.projects = [];
     /** @type {FilterState} */
+    // Default: yesterday to now for date range
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
+
     this.filters = {
       projectName: null,
-      dateFrom: null,
-      dateTo: null,
+      dateFrom: yesterday.getTime(),
+      dateTo: now.getTime(),
       sortBy: 'date',
       sortOrder: 'desc'
     };
@@ -105,15 +111,42 @@ export class FilterPanel extends EventEmitter {
     const sortSection = this.createSortOptions();
     this.filterContent.appendChild(sortSection);
 
-    // Clear filters button
+    // Action buttons row
+    const buttonRow = h('div', { className: 'flex gap-2 mt-3' });
+
+    // Apply filters button
+    const applyBtn = h(
+      'button',
+      {
+        className: 'apply-filters-btn flex-1 px-3 py-2 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded',
+        onClick: () => this.applyFilters()
+      },
+      ['Apply Filters']
+    );
+    buttonRow.appendChild(applyBtn);
+
+    // Show All button (removes date filter to show all sessions)
+    const showAllBtn = h(
+      'button',
+      {
+        className: 'show-all-btn flex-1 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 rounded border border-gray-600',
+        onClick: () => this.showAllSessions()
+      },
+      ['Show All']
+    );
+    buttonRow.appendChild(showAllBtn);
+
+    this.filterContent.appendChild(buttonRow);
+
+    // Clear filters button (only show if active)
     if (this.hasActiveFilters()) {
       const clearBtn = h(
         'button',
         {
-          className: 'clear-filters-btn w-full mt-3 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-gray-700 rounded border border-gray-600',
+          className: 'clear-filters-btn w-full mt-2 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-gray-700 rounded border border-gray-600',
           onClick: () => this.clearFilters()
         },
-        ['Clear All Filters']
+        ['Reset to Defaults']
       );
       this.filterContent.appendChild(clearBtn);
     }
@@ -240,15 +273,14 @@ export class FilterPanel extends EventEmitter {
   }
 
   /**
-   * Set a filter value
+   * Set a filter value (does NOT emit change - user must click Apply)
    * @param {keyof FilterState} key
    * @param {any} value
    */
   setFilter(key, value) {
     this.filters[key] = value;
-    this.emitChange();
-
-    // Re-render to update clear button visibility
+    // Don't emit change - wait for Apply button click
+    // But still re-render to update UI
     if (this.isExpanded) {
       this.renderFilterContent();
     }
@@ -256,11 +288,11 @@ export class FilterPanel extends EventEmitter {
   }
 
   /**
-   * Toggle sort order
+   * Toggle sort order (does NOT emit change - user must click Apply)
    */
   toggleSortOrder() {
     this.filters.sortOrder = this.filters.sortOrder === 'desc' ? 'asc' : 'desc';
-    this.emitChange();
+    // Don't emit change - wait for Apply button click
 
     if (this.sortOrderBtn) {
       this.sortOrderBtn.textContent = this.filters.sortOrder === 'desc' ? '↓' : '↑';
@@ -277,13 +309,36 @@ export class FilterPanel extends EventEmitter {
   }
 
   /**
+   * Apply current filters (emit change event)
+   */
+  applyFilters() {
+    this.emitChange();
+  }
+
+  /**
+   * Show all sessions (clear date filter)
+   */
+  showAllSessions() {
+    this.filters.dateFrom = null;
+    this.filters.dateTo = null;
+    this.emitChange();
+    this.render();
+  }
+
+  /**
    * Clear all filters
    */
   clearFilters() {
+    // Reset to default: yesterday to now
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
+
     this.filters = {
       projectName: null,
-      dateFrom: null,
-      dateTo: null,
+      dateFrom: yesterday.getTime(),
+      dateTo: now.getTime(),
       sortBy: 'date',
       sortOrder: 'desc'
     };
