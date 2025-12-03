@@ -27,14 +27,10 @@ export class SessionList extends EventEmitter {
     this.filteredSessions = [];
     /** @type {string|null} */
     this.selectedId = null;
-    /** @type {string} */
-    this.filterText = '';
-    /** @type {string} */
-    this.sortBy = 'date'; // 'date' | 'name' | 'project'
     /** @type {boolean} */
-    this.sortAsc = false;
-    /** @type {boolean} */
-    this.groupByProject = true; // New: group by project
+    this.groupByProject = true; // Group sessions by project
+    /** @type {HTMLElement|null} */
+    this.sessionCountEl = null;
     /** @type {Set<string>} */
     this.collapsedGroups = new Set(); // Track collapsed project groups
 
@@ -61,57 +57,54 @@ export class SessionList extends EventEmitter {
   }
 
   createHeader() {
-    // Search input
-    const searchInput = h('input', {
-      type: 'text',
-      placeholder: 'Search sessions...',
-      className: 'search-input w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm focus:outline-none focus:border-blue-500',
-      onInput: (e) => {
-        this.filterText = e.target.value;
-        this.applyFilter();
-      }
-    });
+    // Session count and refresh button (search is handled by app-level SearchBar)
+    const sessionCount = h('span', { className: 'session-count text-xs text-gray-500' }, ['0 sessions']);
+    this.sessionCountEl = sessionCount;
 
-    // Sort dropdown
-    const sortSelect = h(
-      'select',
-      {
-        className: 'sort-select px-2 py-1 bg-gray-800 border border-gray-700 rounded text-sm',
-        onChange: (e) => {
-          this.sortBy = e.target.value;
-          this.applyFilter();
-        }
-      },
-      [h('option', { value: 'date' }, ['Date']), h('option', { value: 'name' }, ['Name']), h('option', { value: 'project' }, ['Project'])]
-    );
-
-    // Sort direction button
-    const sortDirBtn = h(
+    // Group toggle button
+    const groupToggle = h(
       'button',
       {
-        className: 'sort-dir-btn p-1 hover:bg-gray-700 rounded',
+        className: 'group-toggle-btn p-1.5 hover:bg-gray-700 rounded text-gray-400 hover:text-gray-200',
         onClick: () => {
-          this.sortAsc = !this.sortAsc;
-          sortDirBtn.textContent = this.sortAsc ? '↑' : '↓';
-          this.applyFilter();
-        }
+          this.groupByProject = !this.groupByProject;
+          this.renderList();
+        },
+        title: 'Toggle project grouping'
       },
-      ['↓']
+      [
+        h('svg', { className: 'w-4 h-4', viewBox: '0 0 20 20', fill: 'currentColor' }, [
+          h('path', {
+            fillRule: 'evenodd',
+            d: 'M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zM2 10a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10zm0 5.25a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75a.75.75 0 01-.75-.75z',
+            clipRule: 'evenodd'
+          })
+        ])
+      ]
     );
 
     // Refresh button
     const refreshBtn = h(
       'button',
       {
-        className: 'refresh-btn px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm',
-        onClick: () => this.emit('refresh')
+        className: 'refresh-btn p-1.5 hover:bg-gray-700 rounded text-gray-400 hover:text-gray-200',
+        onClick: () => this.emit('refresh'),
+        title: 'Refresh sessions'
       },
-      ['Refresh']
+      [
+        h('svg', { className: 'w-4 h-4', viewBox: '0 0 20 20', fill: 'currentColor' }, [
+          h('path', {
+            fillRule: 'evenodd',
+            d: 'M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0V5.36l-.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z',
+            clipRule: 'evenodd'
+          })
+        ])
+      ]
     );
 
-    return h('div', { className: 'session-list-header p-4 border-b border-gray-700' }, [
-      h('div', { className: 'mb-3' }, [searchInput]),
-      h('div', { className: 'flex items-center gap-2' }, [h('span', { className: 'text-xs text-gray-500' }, ['Sort:']), sortSelect, sortDirBtn, h('div', { className: 'flex-1' }), refreshBtn])
+    return h('div', { className: 'session-list-header px-4 py-2 border-b border-gray-700 flex items-center justify-between' }, [
+      sessionCount,
+      h('div', { className: 'flex items-center gap-1' }, [groupToggle, refreshBtn])
     ]);
   }
 
@@ -159,44 +152,23 @@ export class SessionList extends EventEmitter {
   }
 
   /**
-   * Apply filter and sort
+   * Apply filter and render
+   * Note: Filtering/sorting is now handled by SearchIndex at app level
+   * This method just updates the display with pre-filtered sessions
    */
   applyFilter() {
-    let filtered = [...this.sessions];
+    // Sessions are pre-filtered by SearchIndex, just use them directly
+    this.filteredSessions = [...this.sessions];
 
-    // Filter by search text
-    if (this.filterText) {
-      const search = this.filterText.toLowerCase();
-      filtered = filtered.filter(
-        (s) =>
-          s.summary.toLowerCase().includes(search) ||
-          s.projectName.toLowerCase().includes(search)
-      );
+    // Update session count
+    if (this.sessionCountEl) {
+      this.sessionCountEl.textContent = `${this.filteredSessions.length} session${this.filteredSessions.length !== 1 ? 's' : ''}`;
     }
-
-    // Sort
-    filtered.sort((a, b) => {
-      let cmp = 0;
-      switch (this.sortBy) {
-        case 'date':
-          cmp = b.updatedAt - a.updatedAt;
-          break;
-        case 'name':
-          cmp = a.summary.localeCompare(b.summary);
-          break;
-        case 'project':
-          cmp = a.projectName.localeCompare(b.projectName);
-          break;
-      }
-      return this.sortAsc ? -cmp : cmp;
-    });
-
-    this.filteredSessions = filtered;
 
     // Render list
     this.renderList();
 
-    this.emit('filter', { count: filtered.length, total: this.sessions.length });
+    this.emit('filter', { count: this.filteredSessions.length, total: this.sessions.length });
   }
 
   /**

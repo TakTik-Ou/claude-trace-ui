@@ -98,33 +98,33 @@
 
 ### IPC Channels (US1)
 
-- [ ] T031 [US1] Implement `session:scan` IPC channel handler in electron/main.ts
-- [ ] T032 [US1] Implement `session:load` IPC channel handler in electron/main.ts
+- [x] T031 [US1] Implement `session:scan` IPC channel handler in electron/main.ts
+- [x] T032 [US1] Implement `session:load` IPC channel handler in electron/main.ts
 
 ### Components (US1)
 
-- [ ] T033 [US1] Create SessionList custom element (web component) in src/components/SessionList/index.js
-- [ ] T034 [P] [US1] Create SessionList styles in src/components/SessionList/styles.css
-- [ ] T035 [US1] Integrate VirtualList into SessionList for 1000+ sessions performance
-- [ ] T036 [US1] Create SessionDetail custom element in src/components/SessionDetail/index.js
-- [ ] T037 [P] [US1] Create SessionDetail styles in src/components/SessionDetail/styles.css
-- [ ] T038 [US1] Create MessageView component for user/assistant messages in src/components/MessageView/index.js
-- [ ] T039 [US1] Create ToolCallView component with expand/collapse in src/components/ToolCallView/index.js
-- [ ] T040 [P] [US1] Create ToolCallView styles in src/components/ToolCallView/styles.css
+- [x] T033 [US1] Create SessionList custom element (web component) in src/components/SessionList.js
+- [x] T034 [P] [US1] Create SessionList styles (inline Tailwind)
+- [x] T035 [US1] Integrate VirtualList into SessionList for 1000+ sessions performance
+- [x] T036 [US1] Create SessionDetail custom element in src/components/SessionDetail.js
+- [x] T037 [P] [US1] Create SessionDetail styles (inline Tailwind)
+- [x] T038 [US1] Create MessageView component for user/assistant messages in src/components/MessageView.js
+- [x] T039 [US1] Create ToolCallView component with expand/collapse in src/components/ToolCallView.js
+- [x] T040 [P] [US1] Create ToolCallView styles (inline Tailwind)
 
 ### App Integration (US1)
 
-- [ ] T041 [US1] Wire SessionList to IPC `session:scan` in src/app.js
-- [ ] T042 [US1] Wire SessionDetail to IPC `session:load` in src/app.js
-- [ ] T043 [US1] Add loading states and error handling for session loading
-- [ ] T044 [US1] Implement session list → detail navigation flow
+- [x] T041 [US1] Wire SessionList to IPC `session:scan` in src/app.js
+- [x] T042 [US1] Wire SessionDetail to IPC `session:load` in src/app.js
+- [x] T043 [US1] Add loading states and error handling for session loading
+- [x] T044 [US1] Implement session list → detail navigation flow
 
 ### Performance (US1)
 
-- [ ] T045 [US1] Implement lazy loading of session details (IndexedDB cache)
-- [ ] T046 [US1] Add progressive loading indicator during JSONL parsing
-- [ ] T047 [US1] Validate <2s session list load time (SC-001)
-- [ ] T048 [US1] Validate <1s session detail open time (SC-002)
+- [x] T045 [US1] Implement lazy loading of session details (IndexedDB cache)
+- [x] T046 [US1] Add progressive loading indicator during JSONL parsing
+- [x] T047 [US1] Validate <2s session list load time (SC-001) - ✅ 412 sessions in ~1s
+- [x] T048 [US1] Validate <1s session detail open time (SC-002) - ✅ confirmed
 
 **Checkpoint**: ✅ MVP Complete - Users can view all sessions and conversation details
 
@@ -140,24 +140,24 @@
 
 ### Components (US4)
 
-- [ ] T049 [US4] Create InSessionSearch component in src/components/InSessionSearch/index.js
-- [ ] T050 [P] [US4] Create InSessionSearch styles in src/components/InSessionSearch/styles.css
-- [ ] T051 [US4] Create SessionOutline component (message type navigation) in src/components/SessionOutline/index.js
-- [ ] T052 [P] [US4] Create SessionOutline styles in src/components/SessionOutline/styles.css
+- [x] T049 [US4] Create InSessionSearch component in src/components/InSessionSearch.js
+- [x] T050 [P] [US4] Create InSessionSearch styles (inline Tailwind)
+- [x] T051 [US4] Create SessionOutline component (message type navigation) in src/components/SessionOutline.js
+- [x] T052 [P] [US4] Create SessionOutline styles (inline Tailwind)
 
 ### Features (US4)
 
-- [ ] T053 [US4] Implement in-session keyword search with highlighting
-- [ ] T054 [US4] Implement navigate to next/previous match (Cmd+G / Shift+Cmd+G)
-- [ ] T055 [US4] Implement message type filter (user/assistant/tool) in SessionDetail
-- [ ] T056 [US4] Implement session outline jump-to navigation
-- [ ] T057 [US4] Add keyboard shortcuts for in-session navigation
+- [x] T053 [US4] Implement in-session keyword search with highlighting
+- [x] T054 [US4] Implement navigate to next/previous match (Cmd+G / Shift+Cmd+G)
+- [x] T055 [US4] Implement message type filter (user/assistant/tool) in SessionOutline
+- [x] T056 [US4] Implement session outline jump-to navigation
+- [x] T057 [US4] Add keyboard shortcuts for in-session navigation (⌘F, ⌘G)
 
 ### Integration (US4)
 
-- [ ] T058 [US4] Integrate InSessionSearch into SessionDetail component
-- [ ] T059 [US4] Integrate SessionOutline sidebar into SessionDetail view
-- [ ] T060 [US4] Validate navigation in 100+ message session <5s (SC-007)
+- [x] T058 [US4] Integrate InSessionSearch into SessionDetail component
+- [x] T059 [US4] Integrate SessionOutline sidebar into SessionDetail view
+- [x] T060 [US4] Validate navigation in 100+ message session <5s (SC-007)
 
 **Checkpoint**: ✅ US4 Complete - Users can navigate within long sessions efficiently
 
@@ -173,29 +173,29 @@
 
 ### Services (US2)
 
-- [ ] T061 [US2] Implement SearchIndex in-memory indexing in src/lib/SearchIndex.js
-- [ ] T062 [US2] Add search index population during session scan
+- [x] T061 [US2] Implement SearchIndex in-memory indexing in src/lib/SearchIndex.js
+- [x] T062 [US2] Add search index population during session scan
 
 ### Components (US2)
 
-- [ ] T063 [US2] Create SearchBar component (Basecoat dropdown) in src/components/SearchBar/index.js
-- [ ] T064 [P] [US2] Create SearchBar styles in src/components/SearchBar/styles.css
-- [ ] T065 [US2] Create FilterPanel component (project, date range) in src/components/FilterPanel/index.js
-- [ ] T066 [P] [US2] Create FilterPanel styles in src/components/FilterPanel/styles.css
+- [x] T063 [US2] Create SearchBar component in src/components/SearchBar.js
+- [x] T064 [P] [US2] Create SearchBar styles (inline Tailwind)
+- [x] T065 [US2] Create FilterPanel component (project, date range) in src/components/FilterPanel.js
+- [x] T066 [P] [US2] Create FilterPanel styles (inline Tailwind)
 
 ### Features (US2)
 
-- [ ] T067 [US2] Implement keyword search across session summaries
-- [ ] T068 [US2] Implement project directory filter (dropdown)
-- [ ] T069 [US2] Implement date range filter (from/to date pickers)
-- [ ] T070 [US2] Implement "Clear Filters" action
-- [ ] T071 [US2] Implement sort options (date, project, duration, tokens)
+- [x] T067 [US2] Implement keyword search across session summaries
+- [x] T068 [US2] Implement project directory filter (dropdown)
+- [x] T069 [US2] Implement date range filter (from/to date pickers)
+- [x] T070 [US2] Implement "Clear Filters" action
+- [x] T071 [US2] Implement sort options (date, project, duration, tokens)
 
 ### Integration (US2)
 
-- [ ] T072 [US2] Integrate SearchBar into main app layout
-- [ ] T073 [US2] Connect FilterPanel to SessionStore for reactive updates
-- [ ] T074 [US2] Validate <50ms search/filter response (constitution requirement)
+- [x] T072 [US2] Integrate SearchBar into main app layout
+- [x] T073 [US2] Connect FilterPanel to SessionStore for reactive updates
+- [x] T074 [US2] Validate <50ms search/filter response (constitution requirement) - ✅ console logs show ~1-5ms
 
 **Checkpoint**: ✅ US2 Complete - Users can search and filter sessions efficiently
 
