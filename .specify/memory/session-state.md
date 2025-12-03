@@ -485,9 +485,13 @@ npm run build
 | `dfa5f7c` | docs: add README with project overview and quick start |
 | `9c65c1d` | feat(session-browser): implement US1 MVP with critical fixes |
 
-**Note**: No remote repository configured yet. To push:
+**Remote**: https://github.com/TakTik-Ou/claude-trace-ui
 
 ```bash
-git remote add origin <your-repo-url>
-git push -u origin 001-session-browser
+# Clone on new machine
+git clone https://github.com/TakTik-Ou/claude-trace-ui.git
+cd claude-trace-ui
+git checkout 001-session-browser
+npm install
+env -u ELECTRON_RUN_AS_NODE npm run dev:electron
 ```
