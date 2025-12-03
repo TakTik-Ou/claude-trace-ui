@@ -474,3 +474,20 @@ npm run build
 | `electron/services/jsonl-parser.ts` | Fixed timestamp parsing |
 | `src/components/SessionDetail.js` | Fixed content extraction path |
 | `src/components/SessionList.js` | Added project grouping with collapsible headers |
+| `README.md` | Created with project overview, quick start, roadmap |
+
+---
+
+## Git Commits (2025-12-03)
+
+| Commit | Description |
+|--------|-------------|
+| `dfa5f7c` | docs: add README with project overview and quick start |
+| `9c65c1d` | feat(session-browser): implement US1 MVP with critical fixes |
+
+**Note**: No remote repository configured yet. To push:
+
+```bash
+git remote add origin <your-repo-url>
+git push -u origin 001-session-browser
+```
