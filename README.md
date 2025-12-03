@@ -84,7 +84,9 @@ npm run format
 - [ ] Phase 4: Search & filtering
 - [ ] Phase 5: Keyboard navigation
 - [ ] Phase 6: Session export
-- [ ] Phase 7: Preferences
+- [ ] Phase 7: macOS packaging (DMG distribution)
+- [ ] Phase 8: Windows packaging (NSIS installer)
+- [ ] Phase 9: Linux packaging (AppImage)
 
 ## License
 
