@@ -32,7 +32,9 @@ export class SessionList extends EventEmitter {
     /** @type {HTMLElement|null} */
     this.sessionCountEl = null;
     /** @type {Set<string>} */
-    this.collapsedGroups = new Set(); // Track collapsed project groups
+    this.expandedGroups = new Set(); // Track expanded project groups (collapsed by default)
+    /** @type {boolean} */
+    this.initialRenderDone = false; // Track if initial render completed
 
     this.init();
   }
@@ -60,6 +62,31 @@ export class SessionList extends EventEmitter {
     // Session count and refresh button (search is handled by app-level SearchBar)
     const sessionCount = h('span', { className: 'session-count text-xs text-gray-500' }, ['0 sessions']);
     this.sessionCountEl = sessionCount;
+
+    // Expand/collapse all button
+    const expandCollapseBtn = h(
+      'button',
+      {
+        className: 'expand-collapse-btn p-1.5 hover:bg-gray-700 rounded text-gray-400 hover:text-gray-200',
+        onClick: () => {
+          if (this.expandedGroups.size > 0) {
+            this.collapseAllGroups();
+          } else {
+            this.expandAllGroups();
+          }
+        },
+        title: 'Expand/Collapse all groups'
+      },
+      [
+        h('svg', { className: 'w-4 h-4', viewBox: '0 0 20 20', fill: 'currentColor' }, [
+          h('path', {
+            fillRule: 'evenodd',
+            d: 'M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z',
+            clipRule: 'evenodd'
+          })
+        ])
+      ]
+    );
 
     // Group toggle button
     const groupToggle = h(
@@ -104,7 +131,7 @@ export class SessionList extends EventEmitter {
 
     return h('div', { className: 'session-list-header px-4 py-2 border-b border-gray-700 flex items-center justify-between' }, [
       sessionCount,
-      h('div', { className: 'flex items-center gap-1' }, [groupToggle, refreshBtn])
+      h('div', { className: 'flex items-center gap-1' }, [expandCollapseBtn, groupToggle, refreshBtn])
     ]);
   }
 
@@ -212,7 +239,8 @@ export class SessionList extends EventEmitter {
 
     // Render each group
     for (const [projectName, sessions] of sortedGroups) {
-      const isCollapsed = this.collapsedGroups.has(projectName);
+      // Groups are collapsed by default (expanded if in expandedGroups set)
+      const isExpanded = this.expandedGroups.has(projectName);
 
       // Group header
       const header = h(
@@ -222,15 +250,15 @@ export class SessionList extends EventEmitter {
           onClick: () => this.toggleGroup(projectName)
         },
         [
-          h('span', { className: 'text-gray-400 text-sm' }, [isCollapsed ? '▶' : '▼']),
+          h('span', { className: 'text-gray-400 text-sm' }, [isExpanded ? '▼' : '▶']),
           h('span', { className: 'text-blue-400 font-medium text-sm flex-1 truncate' }, [projectName]),
           h('span', { className: 'text-gray-500 text-xs' }, [`${sessions.length} session${sessions.length !== 1 ? 's' : ''}`])
         ]
       );
       this.listContainer.appendChild(header);
 
-      // Sessions in this group (if not collapsed)
-      if (!isCollapsed) {
+      // Sessions in this group (if expanded)
+      if (isExpanded) {
         for (const session of sessions) {
           const item = this.renderSessionItem(session);
           this.listContainer.appendChild(item);
@@ -250,15 +278,34 @@ export class SessionList extends EventEmitter {
   }
 
   /**
-   * Toggle a project group collapsed state
+   * Toggle a project group expanded state
    * @param {string} projectName
    */
   toggleGroup(projectName) {
-    if (this.collapsedGroups.has(projectName)) {
-      this.collapsedGroups.delete(projectName);
+    if (this.expandedGroups.has(projectName)) {
+      this.expandedGroups.delete(projectName);
     } else {
-      this.collapsedGroups.add(projectName);
+      this.expandedGroups.add(projectName);
     }
+    this.renderList();
+  }
+
+  /**
+   * Expand all project groups
+   */
+  expandAllGroups() {
+    for (const session of this.filteredSessions) {
+      const projectName = session.projectName || 'Unknown Project';
+      this.expandedGroups.add(projectName);
+    }
+    this.renderList();
+  }
+
+  /**
+   * Collapse all project groups
+   */
+  collapseAllGroups() {
+    this.expandedGroups.clear();
     this.renderList();
   }
 
