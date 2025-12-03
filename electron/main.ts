@@ -1,9 +1,16 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
+import * as fs from 'fs/promises';
 import { homedir } from 'os';
 import { scanForSessions, type SessionSummary } from './services/session-scanner.js';
 import { parseSessionFile } from './services/jsonl-parser.js';
 import * as indexManager from './services/index-manager.js';
+
+// Export data type from renderer
+interface ExportData {
+  html: string;
+  filename: string;
+}
 
 // Keep a global reference of the window object
 let mainWindow: BrowserWindow | null = null;
@@ -135,10 +142,74 @@ ipcMain.handle('session:load', async (_event, filePath: string) => {
   }
 });
 
-// session:export - Export session to HTML (placeholder for future)
-ipcMain.handle('session:export', async (_event, _sessionId: string, _format: string) => {
-  // Will be implemented in Phase 7
-  throw new Error('Export not yet implemented');
+// session:export - Export single session to HTML file
+ipcMain.handle('session:export', async (_event, data: ExportData) => {
+  try {
+    if (!data?.html || !data?.filename) {
+      throw new Error('Invalid export data: html and filename required');
+    }
+
+    // Show save dialog
+    const result = await dialog.showSaveDialog(mainWindow!, {
+      title: 'Export Session',
+      defaultPath: path.join(app.getPath('documents'), data.filename),
+      filters: [
+        { name: 'HTML Files', extensions: ['html'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    });
+
+    if (result.canceled || !result.filePath) {
+      return { success: false, canceled: true };
+    }
+
+    // Write the HTML file
+    await fs.writeFile(result.filePath, data.html, 'utf-8');
+
+    return { success: true, path: result.filePath };
+  } catch (error) {
+    console.error('Error exporting session:', error);
+    throw error;
+  }
+});
+
+// session:export-batch - Export multiple sessions to a directory
+ipcMain.handle('session:export-batch', async (_event, exports: ExportData[]) => {
+  try {
+    if (!exports?.length) {
+      throw new Error('No sessions to export');
+    }
+
+    // Show directory selection dialog
+    const result = await dialog.showOpenDialog(mainWindow!, {
+      title: 'Select Export Directory',
+      defaultPath: app.getPath('documents'),
+      properties: ['openDirectory', 'createDirectory']
+    });
+
+    if (result.canceled || !result.filePaths.length) {
+      return { success: false, canceled: true, count: 0 };
+    }
+
+    const directory = result.filePaths[0];
+    let successCount = 0;
+
+    // Write each session to the directory
+    for (const exportData of exports) {
+      try {
+        const filePath = path.join(directory, exportData.filename);
+        await fs.writeFile(filePath, exportData.html, 'utf-8');
+        successCount++;
+      } catch (err) {
+        console.error(`Failed to export ${exportData.filename}:`, err);
+      }
+    }
+
+    return { success: true, count: successCount, directory };
+  } catch (error) {
+    console.error('Error batch exporting sessions:', error);
+    throw error;
+  }
 });
 
 // preferences:get - Get user preferences (placeholder for future)

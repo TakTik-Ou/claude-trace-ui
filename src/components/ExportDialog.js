@@ -252,16 +252,23 @@ export class ExportDialog extends EventEmitter {
     this.renderContent();
 
     try {
+      let completed;
       if (this.sessions.length === 1) {
         // Single session export
-        await this.exportSingle(this.session);
+        completed = await this.exportSingle(this.session);
       } else {
         // Batch export
-        await this.exportBatch(this.sessions);
+        completed = await this.exportBatch(this.sessions);
       }
 
-      this.emit('export-complete', { count: this.sessions.length });
-      this.close();
+      if (completed) {
+        this.emit('export-complete', { count: this.sessions.length });
+        this.close();
+      } else {
+        // User canceled - just reset state
+        this.isExporting = false;
+        this.renderContent();
+      }
     } catch (error) {
       console.error('Export failed:', error);
       this.emit('export-error', { error: error.message });
@@ -273,6 +280,7 @@ export class ExportDialog extends EventEmitter {
   /**
    * Export single session
    * @param {Session} session
+   * @returns {Promise<boolean>} Whether export completed (false if canceled)
    */
   async exportSingle(session) {
     const html = exportSessionToHtml(session, this.options);
@@ -280,16 +288,19 @@ export class ExportDialog extends EventEmitter {
 
     // In Electron, use IPC to save file
     if (window.electronAPI?.exportSession) {
-      await window.electronAPI.exportSession({ html, filename });
+      const result = await window.electronAPI.exportSession({ html, filename });
+      return result.success && !result.canceled;
     } else {
       // Browser fallback: download via blob
       this.downloadHtml(html, filename);
+      return true;
     }
   }
 
   /**
    * Export multiple sessions
    * @param {Session[]} sessions
+   * @returns {Promise<boolean>} Whether export completed (false if canceled)
    */
   async exportBatch(sessions) {
     // In Electron, use IPC for directory selection
@@ -298,7 +309,8 @@ export class ExportDialog extends EventEmitter {
         html: exportSessionToHtml(session, this.options),
         filename: generateExportFilename(session)
       }));
-      await window.electronAPI.exportSessions(exports);
+      const result = await window.electronAPI.exportSessions(exports);
+      return result.success && !result.canceled;
     } else {
       // Browser fallback: download each file
       for (const session of sessions) {
@@ -308,6 +320,7 @@ export class ExportDialog extends EventEmitter {
         // Small delay between downloads
         await new Promise((r) => setTimeout(r, 500));
       }
+      return true;
     }
   }
 

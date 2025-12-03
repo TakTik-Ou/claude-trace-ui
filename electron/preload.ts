@@ -11,6 +11,7 @@ const validChannels = {
     'session:scan',
     'session:load',
     'session:export',
+    'session:export-batch',
     'preferences:get',
     'preferences:set'
   ] as const,
@@ -22,6 +23,12 @@ const validChannels = {
 
 type InvokeChannel = typeof validChannels.invoke[number];
 type OnChannel = typeof validChannels.on[number];
+
+// Export types
+interface ExportData {
+  html: string;
+  filename: string;
+}
 
 // Expose protected methods to renderer
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -54,6 +61,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   /**
+   * Export single session to HTML file
+   */
+  exportSession: async (data: ExportData): Promise<{ success: boolean; path?: string }> => {
+    return ipcRenderer.invoke('session:export', data);
+  },
+
+  /**
+   * Export multiple sessions to HTML files
+   */
+  exportSessions: async (exports: ExportData[]): Promise<{ success: boolean; count: number; directory?: string }> => {
+    return ipcRenderer.invoke('session:export-batch', exports);
+  },
+
+  /**
    * Platform information
    */
   platform: process.platform,
@@ -70,6 +91,8 @@ declare global {
     electronAPI: {
       invoke: <T>(channel: InvokeChannel, ...args: unknown[]) => Promise<T>;
       on: (channel: OnChannel, callback: (...args: unknown[]) => void) => () => void;
+      exportSession: (data: ExportData) => Promise<{ success: boolean; path?: string }>;
+      exportSessions: (exports: ExportData[]) => Promise<{ success: boolean; count: number; directory?: string }>;
       platform: NodeJS.Platform;
       version: string;
     };
