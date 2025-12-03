@@ -44,10 +44,15 @@ export class MessageView {
       .filter(Boolean)
       .join(' ');
 
-    // Role indicator
+    // Get token usage from message data (assistant messages only)
+    const usage = this.message.usage || null;
+    const tokenCount = usage ? (usage.input || 0) + (usage.output || 0) : 0;
+
+    // Role indicator with optional token count
     const roleLabel = h('div', { className: 'flex items-center gap-2 mb-2' }, [
       h('span', { className: `text-xs font-medium ${isUser ? 'text-blue-400' : 'text-green-400'}` }, [isUser ? 'User' : 'Assistant']),
-      timestamp ? h('span', { className: 'text-xs text-gray-500' }, [formatTime(timestamp)]) : null
+      timestamp ? h('span', { className: 'text-xs text-gray-500' }, [formatTime(timestamp)]) : null,
+      tokenCount > 0 ? h('span', { className: 'text-xs text-gray-600', title: `Input: ${usage.input || 0}, Output: ${usage.output || 0}` }, [`${Math.round(tokenCount / 1000)}k tokens`]) : null
     ].filter(Boolean));
 
     // Content area

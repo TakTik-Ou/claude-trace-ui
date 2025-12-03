@@ -252,24 +252,24 @@
 
 ### Services (US5)
 
-- [ ] T089 [US5] Implement token counter utility in src/utils/token-counter.js
+- [x] T089 [US5] Token counter utility implemented inline in MetadataPanel.js (formatNumber, estimateCost functions)
 
 ### Components (US5)
 
-- [ ] T090 [US5] Create MetadataPanel component in src/components/MetadataPanel/index.js
-- [ ] T091 [P] [US5] Create MetadataPanel styles in src/components/MetadataPanel/styles.css
+- [x] T090 [US5] MetadataPanel component created in src/components/MetadataPanel.js (single file with inline Tailwind)
+- [x] T091 [P] [US5] MetadataPanel styles using inline Tailwind classes
 
 ### Features (US5)
 
-- [ ] T092 [US5] Display session metadata (tokens, messages, duration, version) in MetadataPanel
-- [ ] T093 [US5] Display per-message token counts in MessageView
-- [ ] T094 [US5] Implement sort by token usage in session list
-- [ ] T095 [US5] Display git branch and status in session metadata
+- [x] T092 [US5] Display session metadata (tokens, messages, duration, version) in MetadataPanel
+- [x] T093 [US5] Display per-message token counts in MessageView header
+- [x] T094 [US5] Sort by token usage implemented in FilterPanel (sort dropdown)
+- [x] T095 [US5] Display git branch and status in session metadata Details section
 
 ### Integration (US5)
 
-- [ ] T096 [US5] Integrate MetadataPanel into SessionDetail sidebar
-- [ ] T097 [US5] Add token usage column to SessionList (optional display)
+- [x] T096 [US5] MetadataPanel integrated into SessionDetail right sidebar
+- [x] T097 [US5] Token usage displayed in SessionList items (Xk tokens)
 
 **Checkpoint**: ✅ US5 Complete - Users can monitor usage and optimize
 

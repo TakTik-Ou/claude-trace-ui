@@ -219,7 +219,7 @@ export class MetadataPanel extends EventEmitter {
    * @returns {HTMLElement}
    */
   createTechnicalSection() {
-    const { id, filePath, projectName, createdAt, updatedAt } = this.session;
+    const { id, filePath, projectName, createdAt, updatedAt, gitBranch, gitStatus } = this.session;
 
     const section = h('div', { className: 'p-3' }, [h('h4', { className: 'text-xs font-medium text-gray-500 uppercase mb-2' }, ['Details'])]);
 
@@ -230,6 +230,11 @@ export class MetadataPanel extends EventEmitter {
       { label: 'Session ID', value: id ? id.slice(0, 8) + '...' : 'N/A' }
     ];
 
+    // Add git branch if available
+    if (gitBranch) {
+      items.push({ label: 'Git Branch', value: gitBranch });
+    }
+
     const list = h(
       'div',
       { className: 'space-y-2' },
@@ -239,6 +244,15 @@ export class MetadataPanel extends EventEmitter {
     );
 
     section.appendChild(list);
+
+    // Git status (if available and has changes)
+    if (gitStatus && gitStatus.trim()) {
+      const statusEl = h('div', { className: 'mt-3 pt-2 border-t border-gray-700' }, [
+        h('div', { className: 'text-xs text-gray-500 mb-1' }, ['Git Status']),
+        h('pre', { className: 'text-xs text-gray-400 bg-gray-800 p-2 rounded overflow-x-auto max-h-24 overflow-y-auto whitespace-pre-wrap' }, [gitStatus])
+      ]);
+      section.appendChild(statusEl);
+    }
 
     // File path (truncated)
     if (filePath) {

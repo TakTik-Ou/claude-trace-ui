@@ -254,7 +254,8 @@ export class SessionDetail extends EventEmitter {
       role: event.type,
       content: content,
       timestamp: event.timestamp,
-      toolCalls: event.data?.tool_calls || []
+      toolCalls: event.data?.tool_calls || [],
+      usage: event.data?.usage || null
     };
   }
 

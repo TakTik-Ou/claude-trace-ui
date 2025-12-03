@@ -16,8 +16,8 @@ A desktop application for viewing and browsing Claude Code session files from `~
 
 ## Status
 
-**Current Phase**: Phase 6 Complete (Export)
-**Bundle Size**: ~205KB (target: 200-300KB)
+**Current Phase**: Phase 7 Complete (Metadata)
+**Bundle Size**: ~206KB (target: 200-300KB)
 **Sessions Tested**: 412 sessions loaded successfully
 
 ### Completed Features
@@ -28,7 +28,7 @@ A desktop application for viewing and browsing Claude Code session files from `~
 | US2 - Search & Filter | ✅ Complete | Keyword search, project/date filters, sorting |
 | US3 - Export | ✅ Complete | Export to standalone HTML files |
 | US4 - In-Session Navigation | ✅ Complete | ⌘F search, outline sidebar, message filters |
-| US5 - Metadata | 🔲 Pending | Token usage, session statistics |
+| US5 - Metadata | ✅ Complete | Token usage, cost estimation, git info, per-message tokens |
 
 ## Tech Stack
 
@@ -110,10 +110,10 @@ npm run format
 - [x] Phase 4 (US4): In-session navigation
 - [x] Phase 5 (US2): Search & filtering
 - [x] Phase 6 (US3): HTML export
+- [x] Phase 7 (US5): Session metadata and token usage
 
 ### Remaining
 
-- [ ] Phase 7 (US5): Session metadata and token usage
 - [ ] Phase 8: Polish (keyboard nav, preferences, error handling)
 - [ ] Phase 9: macOS packaging (DMG distribution)
 - [ ] Phase 10: Cross-platform packaging (Windows/Linux)
