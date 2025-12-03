@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- CSP set by Electron in production; allowing all for dev server -->
+  <!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';"> -->
+  <title>Claude Trace UI</title>
+</head>
+<body class="bg-gray-50 text-gray-900 antialiased">
+  <div id="app" class="min-h-screen">
+    <!-- App content will be rendered here -->
+    <div class="flex items-center justify-center h-screen">
+      <div class="text-center">
+        <div class="animate-pulse">
+          <div class="w-12 h-12 mx-auto mb-4 bg-gray-200 rounded-full"></div>
+          <div class="h-4 bg-gray-200 rounded w-32 mx-auto"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

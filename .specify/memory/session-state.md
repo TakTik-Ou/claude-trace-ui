@@ -1,8 +1,8 @@
 # Session State: Claude Trace UI Project
 
-**Last Updated**: 2025-11-29
+**Last Updated**: 2025-12-03
 **Branch**: `001-session-browser`
-**Current Phase**: Planning Complete, Ready for Implementation
+**Current Phase**: Phase 3 Complete + Critical Fixes Applied (App Fully Functional)
 
 ---
 
@@ -214,22 +214,51 @@ claude-trace-ui/
 
 ## Next Steps (In Order)
 
-### Immediate: Generate Implementation Tasks
+### ✅ COMPLETED: Task Generation
 
-```bash
-/speckit.tasks
-```
+**Generated**: `specs/001-session-browser/tasks.md`
 
-This will:
-1. Read `specs/001-session-browser/plan.md`
-2. Read `specs/001-session-browser/data-model.md`
-3. Generate `specs/001-session-browser/tasks.md` with:
-   - Dependency-ordered implementation tasks
-   - Mapped to user stories (P1 → P2 → P3)
-   - Estimated effort
-   - Acceptance criteria per task
+- **118 total tasks** across 8 phases
+- **29 parallelizable** tasks marked with [P]
+- **5 user stories** mapped (US1-US5)
+- Dependency graph and execution order included
 
-### Then: Begin Implementation (P1 First)
+### ✅ COMPLETED: Phase 1-3 Implementation (US1 MVP)
+
+**Implemented Tasks (T001-T048)**:
+
+**Phase 1 - Setup (T001-T012)** ✅
+- Project directory structure
+- package.json with dependencies (Electron 28+, Vite 5.x, marked, highlight.js, piscina)
+- TypeScript configuration (noEmit for type-checking only)
+- Vite + Tailwind CSS + PostCSS configuration
+- electron-builder.json
+- Main process entry (electron/main.ts)
+- Preload script (electron/preload.ts)
+- Renderer entry files (src/main.js, src/app.js)
+- ESLint + Prettier configuration
+- Base HTML and styles
+
+**Phase 2 - Foundational (T013-T030)** ✅
+- Type definitions (session.d.ts, event.d.ts, ipc.d.ts)
+- Core libraries (EventEmitter, VirtualList, SessionStore)
+- Main process services (session-scanner, jsonl-parser, index-manager)
+- Worker thread setup (parse-worker)
+- Renderer services (ipc-client, markdown-renderer, syntax-highlighter)
+- Utility modules (dom-helpers, date-formatter, error-handler)
+- Base CSS styles
+
+**Phase 3 - US1 MVP (T031-T048)** ✅
+- IPC handlers (session:scan, session:load)
+- UI Components (SessionList, SessionDetail, MessageView, ToolCallView, FilterBar, LoadingIndicator, ErrorBoundary)
+- App integration with component orchestration
+- Navigation flow
+- Build validation:
+  - **JS Bundle**: 163.21 KB (52.74 KB gzipped)
+  - **CSS Bundle**: 16.12 KB (3.89 KB gzipped)
+  - **Total**: ~180 KB - well under 200-300KB target ✅
+
+### Next: Phase 4+ (US2-US5)
 
 **Priority 1 (MVP - View Sessions)**:
 1. Set up Electron + Vite project structure
@@ -336,20 +365,112 @@ Co-Authored-By: Happy <yesreply@happy.engineering>"
 
 When starting next session, say:
 
-> "Continue implementing Claude Trace UI. Last session completed speckit.plan.
+> "Continue implementing Claude Trace UI. Tasks generated.
 > Review `.specify/memory/session-state.md` for context.
-> Next step: Run `/speckit.tasks` to generate implementation tasks."
+> Next step: Run `/speckit.implement` or start Phase 1 tasks manually."
 
 Then:
+
 1. ✅ Read session-state.md (this file)
-2. ✅ Review plan.md for architecture
-3. ✅ Run `/speckit.tasks`
-4. ✅ Start implementing P1 tasks
-5. ✅ Use quickstart.md for setup guidance
+2. ✅ Review tasks.md for implementation order
+3. ✅ Start with Phase 1: Setup (T001-T012)
+4. ✅ Use quickstart.md for setup guidance
+5. ✅ Track progress with todo list
 
 ---
 
-**Status**: 🟢 Ready for task generation and implementation
-**Phase**: Planning Complete → Task Generation Next
+**Status**: 🟢 App Fully Functional (412 sessions loaded)
+**Phase**: Phase 3 Complete + Critical Bug Fixes
 **Branch**: `001-session-browser`
-**Last Updated**: 2025-11-29
+**Last Updated**: 2025-12-03
+
+---
+
+## Session 2025-12-03: Critical Fixes & Lessons Learned
+
+### Issues Fixed
+
+1. **Date Parsing Bug** - Dates showing "3 Dec 2029" instead of correct dates
+   - **Root Cause**: Timestamps in JSONL files are ISO 8601 strings, but code expected numeric milliseconds
+   - **Fix**: Added type checking in `normalizeEvent()` to handle both string and number timestamps
+   - **File**: `electron/services/jsonl-parser.ts:206-209`
+
+2. **Session Content Not Displaying** - Clicking sessions showed empty content
+   - **Root Cause**: Wrong path to extract content from JSONL events
+   - **Fix**: Changed from `event.data.content` to `event.data.message.content`
+   - **File**: `src/components/SessionDetail.js:eventToMessage()`
+
+3. **Sessions Not Grouped by Project** - Flat list instead of grouped view
+   - **Fix**: Added `groupByProject` mode with collapsible project headers
+   - **File**: `src/components/SessionList.js:renderGroupedList()`
+
+4. **Electron App Fails to Start** - `Cannot read properties of undefined (reading 'isPackaged')`
+   - **Root Cause**: `ELECTRON_RUN_AS_NODE=1` environment variable set by Claude Code runtime
+   - **Why**: This makes Electron run as plain Node.js, disabling `require('electron')` API
+   - **Fix**: Updated `dev:electron` script to use `env -u ELECTRON_RUN_AS_NODE electron .`
+   - **File**: `package.json:10`
+
+5. **Main Process Build Issues** - TypeScript output conflicting with Electron
+   - **Fix**: Switched from `tsc` to `esbuild` with `--external:electron`
+   - **File**: `package.json:9` (build:main script)
+
+6. **PostCSS Config Error** - ESM syntax in CommonJS context
+   - **Fix**: Converted `postcss.config.js` from `export default` to `module.exports`
+   - **File**: `postcss.config.js`
+
+### Key Lessons Learned
+
+#### 🔴 Critical: ELECTRON_RUN_AS_NODE
+
+When running Electron from within Claude Code (or any environment that sets `ELECTRON_RUN_AS_NODE=1`):
+- The `electron` module's APIs (`app`, `BrowserWindow`, etc.) are NOT available
+- `require('electron')` returns just the path string to the binary
+- **Solution**: Always unset this variable: `env -u ELECTRON_RUN_AS_NODE electron .`
+
+#### 🟡 Important: esbuild for Electron Main Process
+
+Using `tsc` to compile Electron main process code can cause issues because:
+- TypeScript output still has `require('electron')` which may resolve to `node_modules/electron` (returns path string)
+- **Solution**: Use `esbuild --external:electron` to keep the require but prevent bundling
+
+#### 🟢 Best Practice: Claude Code JSONL Structure
+
+Claude Code JSONL events have this structure:
+```javascript
+{
+  type: "user" | "assistant" | "tool_use" | "tool_result",
+  timestamp: "2025-11-29T12:39:23.473Z",  // ISO string, NOT numeric
+  data: {
+    uuid: "...",
+    message: {
+      content: "..." | [{type: "text", text: "..."}]  // Can be string or array
+    }
+  }
+}
+```
+
+### Commands Reference
+
+```bash
+# Start development (from regular terminal)
+npm run dev:electron
+
+# If running from Claude Code environment
+env -u ELECTRON_RUN_AS_NODE npm run dev:electron
+
+# Kill process on port 5173 if needed
+lsof -ti:5173 | xargs kill -9
+
+# Build for production
+npm run build
+```
+
+### Files Modified in This Session
+
+| File | Change |
+|------|--------|
+| `package.json` | Updated build:main to use esbuild, added env -u to dev:electron |
+| `postcss.config.js` | Converted from ESM to CommonJS |
+| `electron/services/jsonl-parser.ts` | Fixed timestamp parsing |
+| `src/components/SessionDetail.js` | Fixed content extraction path |
+| `src/components/SessionList.js` | Added project grouping with collapsible headers |
