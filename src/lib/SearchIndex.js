@@ -44,7 +44,7 @@ export class SearchIndex extends EventEmitter {
    * @param {SessionSummary} session
    */
   addSession(session) {
-    const id = session.id;
+    const id = session.uuid;
     this.sessions.set(id, session);
 
     // Index by project
