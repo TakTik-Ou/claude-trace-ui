@@ -33,11 +33,13 @@ export class MessageView {
     const isUser = role === 'user';
     const isAssistant = role === 'assistant';
 
-    // Container classes based on role
+    // Container classes based on role - add overflow-hidden to prevent content from pushing layout
     const containerClasses = [
       'message',
       'rounded-lg',
       'p-4',
+      'overflow-hidden',
+      'min-w-0',
       isUser ? 'message-user bg-blue-900/30 border border-blue-800' : '',
       isAssistant ? 'message-assistant bg-gray-800 border border-gray-700' : ''
     ]
@@ -56,8 +58,8 @@ export class MessageView {
       tokenCount != null ? h('span', { className: 'text-xs text-gray-600', title: `Input: ${usage.input ?? 0}, Output: ${usage.output ?? 0}` }, [`${Math.round(tokenCount / 1000)}k tokens`]) : null
     ].filter(Boolean));
 
-    // Content area
-    const contentEl = h('div', { className: 'message-content prose prose-invert prose-sm max-w-none' });
+    // Content area - constrain width and handle overflow properly
+    const contentEl = h('div', { className: 'message-content prose prose-invert prose-sm max-w-none overflow-x-auto break-words [word-break:break-word]' });
 
     // Render content based on type
     if (typeof content === 'string') {

@@ -56,46 +56,63 @@ export class SessionDetail extends EventEmitter {
     this.loadMoreBtn = null;
     /** @type {HTMLElement|null} */
     this.messagesWrapper = null;
+    /** @type {number} */
+    this.sidebarWidth = 288; // Default 18rem (w-72)
+    /** @type {boolean} */
+    this.isResizing = false;
 
     this.init();
   }
 
   init() {
-    this.container.className = 'session-detail flex h-full';
+    this.container.className = 'session-detail flex h-full overflow-hidden';
 
-    // Main content wrapper
-    this.mainWrapper = h('div', { className: 'session-detail-main flex flex-col flex-1 overflow-hidden' });
+    // Main content wrapper - use min-w-0 to allow flex shrink and prevent overflow
+    this.mainWrapper = h('div', { className: 'session-detail-main flex flex-col flex-1 min-w-0 overflow-hidden' });
     this.container.appendChild(this.mainWrapper);
 
     // Header area
-    this.headerEl = h('div', { className: 'session-detail-header p-4 border-b border-gray-700' });
+    this.headerEl = h('div', { className: 'session-detail-header p-4 border-b border-gray-700 relative' });
     this.mainWrapper.appendChild(this.headerEl);
 
     // Search bar container (hidden by default)
     this.searchContainer = h('div', { className: 'search-container' });
     this.mainWrapper.appendChild(this.searchContainer);
 
-    // Messages container
+    // Messages container - min-w-0 prevents content from expanding beyond flex bounds
     this.messagesContainer = h('div', {
-      className: 'session-messages flex-1 overflow-hidden'
+      className: 'session-messages flex-1 min-w-0 overflow-hidden'
     });
     this.mainWrapper.appendChild(this.messagesContainer);
 
-    // Right sidebar wrapper (outline + metadata)
-    this.rightSidebar = h('div', { className: 'right-sidebar w-72 hidden lg:flex flex-col border-l border-gray-700' });
+    // Resize handle for sidebar
+    this.resizeHandle = h('div', {
+      className: 'resize-handle w-1 bg-gray-700 hover:bg-blue-500 cursor-col-resize hidden lg:block flex-shrink-0 transition-colors',
+      onMouseDown: (e) => this.startResize(e)
+    });
+    this.container.appendChild(this.resizeHandle);
+
+    // Right sidebar wrapper (outline + metadata) - use flex-shrink-0 to prevent shrinking
+    this.rightSidebar = h('div', {
+      className: 'right-sidebar hidden lg:flex flex-col border-l border-gray-700 flex-shrink-0 overflow-hidden',
+      style: `width: ${this.sidebarWidth}px`
+    });
     this.container.appendChild(this.rightSidebar);
 
     // Outline sidebar (optional)
     if (this.options.showOutline) {
-      this.outlineContainer = h('div', { className: 'outline-container flex-1 overflow-hidden' });
+      this.outlineContainer = h('div', { className: 'outline-container flex-1 min-h-0 overflow-hidden' });
       this.rightSidebar.appendChild(this.outlineContainer);
     }
 
     // Metadata panel (optional)
     if (this.options.showMetadata) {
-      this.metadataContainer = h('div', { className: 'metadata-container h-80 border-t border-gray-700' });
+      this.metadataContainer = h('div', { className: 'metadata-container h-80 border-t border-gray-700 overflow-y-auto flex-shrink-0' });
       this.rightSidebar.appendChild(this.metadataContainer);
     }
+
+    // Setup resize handlers
+    this.setupResizeHandlers();
 
     // Empty state
     this.emptyState = h(
@@ -560,9 +577,57 @@ export class SessionDetail extends EventEmitter {
   }
 
   /**
+   * Setup resize handlers for sidebar
+   */
+  setupResizeHandlers() {
+    this.handleMouseMove = (e) => {
+      if (!this.isResizing) return;
+
+      const containerRect = this.container.getBoundingClientRect();
+      const newWidth = containerRect.right - e.clientX;
+
+      // Clamp width between 200px and 500px
+      this.sidebarWidth = Math.max(200, Math.min(500, newWidth));
+      this.rightSidebar.style.width = `${this.sidebarWidth}px`;
+    };
+
+    this.handleMouseUp = () => {
+      if (this.isResizing) {
+        this.isResizing = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        this.resizeHandle.classList.remove('bg-blue-500');
+      }
+    };
+
+    document.addEventListener('mousemove', this.handleMouseMove);
+    document.addEventListener('mouseup', this.handleMouseUp);
+  }
+
+  /**
+   * Start resizing sidebar
+   * @param {MouseEvent} e
+   */
+  startResize(e) {
+    e.preventDefault();
+    this.isResizing = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    this.resizeHandle.classList.add('bg-blue-500');
+  }
+
+  /**
    * Cleanup
    */
   destroy() {
+    // Remove resize event listeners
+    if (this.handleMouseMove) {
+      document.removeEventListener('mousemove', this.handleMouseMove);
+    }
+    if (this.handleMouseUp) {
+      document.removeEventListener('mouseup', this.handleMouseUp);
+    }
+
     this.virtualList?.destroy();
     this.searchComponent?.destroy();
     this.outlineComponent?.destroy();

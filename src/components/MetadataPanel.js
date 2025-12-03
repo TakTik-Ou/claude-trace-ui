@@ -104,19 +104,26 @@ export class MetadataPanel extends EventEmitter {
    */
   createTokenSection() {
     const { tokenUsage } = this.session;
-    const hasTokenData = tokenUsage && (tokenUsage.input != null || tokenUsage.output != null);
+    // Check for valid token data - must have actual non-zero values
+    const hasTokenData = tokenUsage && (
+      (tokenUsage.input != null && tokenUsage.input > 0) ||
+      (tokenUsage.output != null && tokenUsage.output > 0) ||
+      (tokenUsage.total != null && tokenUsage.total > 0)
+    );
 
     const section = h('div', { className: 'p-3 border-b border-gray-700' }, [h('h4', { className: 'text-xs font-medium text-gray-500 uppercase mb-2' }, ['Token Usage'])]);
 
     if (!hasTokenData) {
-      section.appendChild(h('p', { className: 'text-sm text-gray-500' }, ['N/A']));
+      section.appendChild(h('p', { className: 'text-sm text-gray-500' }, ['No token data available']));
       return section;
     }
 
     const inputTokens = tokenUsage.input ?? 0;
     const outputTokens = tokenUsage.output ?? 0;
     const totalTokens = inputTokens + outputTokens;
-    const cacheTokens = tokenUsage.cacheCreation ?? 0;
+    // Parser uses cacheWrite/cacheRead, also support cacheCreation for compatibility
+    const cacheWriteTokens = tokenUsage.cacheWrite ?? tokenUsage.cacheCreation ?? 0;
+    const cacheReadTokens = tokenUsage.cacheRead ?? 0;
     const cost = estimateCost(inputTokens, outputTokens);
 
     // Token bars
@@ -129,8 +136,11 @@ export class MetadataPanel extends EventEmitter {
     tokenBars.appendChild(this.createTokenBar('Output', outputTokens, totalTokens, 'bg-green-500'));
 
     // Cache tokens (if any)
-    if (cacheTokens > 0) {
-      tokenBars.appendChild(this.createTokenBar('Cache', cacheTokens, totalTokens, 'bg-purple-500'));
+    if (cacheWriteTokens > 0) {
+      tokenBars.appendChild(this.createTokenBar('Cache Write', cacheWriteTokens, totalTokens, 'bg-purple-500'));
+    }
+    if (cacheReadTokens > 0) {
+      tokenBars.appendChild(this.createTokenBar('Cache Read', cacheReadTokens, totalTokens, 'bg-yellow-500'));
     }
 
     section.appendChild(tokenBars);
@@ -219,15 +229,17 @@ export class MetadataPanel extends EventEmitter {
    * @returns {HTMLElement}
    */
   createTechnicalSection() {
-    const { id, filePath, projectName, createdAt, updatedAt, gitBranch, gitStatus } = this.session;
+    const { uuid, filePath, projectName, createdAt, updatedAt, gitBranch, gitStatus } = this.session;
 
     const section = h('div', { className: 'p-3' }, [h('h4', { className: 'text-xs font-medium text-gray-500 uppercase mb-2' }, ['Details'])]);
 
+    // Use uuid (not id) as that's what the session parser provides
+    const sessionId = uuid || this.session.id;
     const items = [
       { label: 'Project', value: projectName || 'Unknown' },
       { label: 'Started', value: formatDateTime(createdAt) },
       { label: 'Last Updated', value: formatDateTime(updatedAt) },
-      { label: 'Session ID', value: id ? id.slice(0, 8) + '...' : 'N/A' },
+      { label: 'Session ID', value: sessionId ? sessionId.slice(0, 8) + '...' : 'N/A' },
       { label: 'Git Branch', value: gitBranch || 'N/A' }
     ];
 
