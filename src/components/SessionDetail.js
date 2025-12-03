@@ -19,6 +19,7 @@ import { MetadataPanel } from './MetadataPanel.js';
  */
 
 const MESSAGE_HEIGHT_ESTIMATE = 150; // Estimated height for virtual list
+const MESSAGES_PER_PAGE = 50; // Number of messages to load per page
 
 export class SessionDetail extends EventEmitter {
   /**
@@ -45,6 +46,16 @@ export class SessionDetail extends EventEmitter {
     this.metadataPanel = null;
     /** @type {string} */
     this.currentSearchQuery = '';
+    /** @type {number} */
+    this.currentPage = 0;
+    /** @type {Event[]} */
+    this.displayEvents = [];
+    /** @type {HTMLElement|null} */
+    this.scrollContainer = null;
+    /** @type {HTMLElement|null} */
+    this.loadMoreBtn = null;
+    /** @type {HTMLElement|null} */
+    this.messagesWrapper = null;
 
     this.init();
   }
@@ -208,35 +219,155 @@ export class SessionDetail extends EventEmitter {
 
     clearChildren(this.messagesContainer);
     this.messageViews.clear();
+    this.currentPage = 0;
 
     const events = this.session.events || [];
 
     // Filter to only user and assistant events for display
-    const displayEvents = events.filter(
+    this.displayEvents = events.filter(
       (e) => e.type === 'user' || e.type === 'assistant'
     );
 
-    if (displayEvents.length === 0) {
+    if (this.displayEvents.length === 0) {
       const noMessages = h('div', { className: 'p-4 text-gray-500 text-center' }, ['No messages in this session']);
       this.messagesContainer.appendChild(noMessages);
       return;
     }
 
-    // For now, use simple scroll container
-    // Virtual list would need dynamic heights which is complex
-    const scrollContainer = h('div', {
-      className: 'messages-scroll h-full overflow-y-auto p-4 space-y-4'
+    // Create scroll container
+    this.scrollContainer = h('div', {
+      className: 'messages-scroll h-full overflow-y-auto p-4'
     });
 
-    for (const event of displayEvents) {
-      // Convert event to message format for MessageView
-      const message = this.eventToMessage(event);
-      const messageView = new MessageView(message);
-      this.messageViews.set(event.data?.uuid || String(event.timestamp), messageView);
-      scrollContainer.appendChild(messageView.element);
+    // Messages wrapper for actual content
+    this.messagesWrapper = h('div', { className: 'messages-wrapper space-y-2' });
+    this.scrollContainer.appendChild(this.messagesWrapper);
+
+    // Show message count info
+    const totalCount = this.displayEvents.length;
+    if (totalCount > MESSAGES_PER_PAGE) {
+      const infoBar = h('div', { className: 'sticky top-0 z-10 bg-gray-800 px-3 py-2 rounded mb-3 flex items-center justify-between text-sm' }, [
+        h('span', { className: 'text-gray-400' }, [`${totalCount} messages total`]),
+        h('div', { className: 'flex gap-2' }, [
+          h('button', {
+            className: 'px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 rounded',
+            onClick: () => this.jumpToPosition('start')
+          }, ['⬆ Top']),
+          h('button', {
+            className: 'px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 rounded',
+            onClick: () => this.jumpToPosition('end')
+          }, ['⬇ End'])
+        ])
+      ]);
+      this.scrollContainer.insertBefore(infoBar, this.messagesWrapper);
     }
 
-    this.messagesContainer.appendChild(scrollContainer);
+    // Load first page
+    this.loadMoreMessages();
+
+    this.messagesContainer.appendChild(this.scrollContainer);
+  }
+
+  /**
+   * Load more messages (pagination)
+   */
+  loadMoreMessages() {
+    if (!this.displayEvents || !this.messagesWrapper) return;
+
+    const startIdx = this.currentPage * MESSAGES_PER_PAGE;
+    const endIdx = Math.min(startIdx + MESSAGES_PER_PAGE, this.displayEvents.length);
+    const pageEvents = this.displayEvents.slice(startIdx, endIdx);
+
+    if (pageEvents.length === 0) return;
+
+    let lastTimeGroup = null;
+
+    for (const event of pageEvents) {
+      // Add time group header if needed
+      const timeGroup = this.getTimeGroup(event.timestamp);
+      if (timeGroup !== lastTimeGroup) {
+        const groupHeader = h('div', {
+          className: 'time-group-header sticky top-12 z-5 bg-gray-900/95 px-3 py-1.5 text-xs text-gray-500 border-b border-gray-700 -mx-4 mb-2 mt-4 first:mt-0'
+        }, [timeGroup]);
+        this.messagesWrapper.appendChild(groupHeader);
+        lastTimeGroup = timeGroup;
+      }
+
+      // Create message view
+      const message = this.eventToMessage(event);
+      const messageView = new MessageView(message);
+      const messageId = event.data?.uuid || String(event.timestamp);
+      this.messageViews.set(messageId, messageView);
+      this.messagesWrapper.appendChild(messageView.element);
+    }
+
+    this.currentPage++;
+
+    // Remove old load more button if exists
+    if (this.loadMoreBtn) {
+      this.loadMoreBtn.remove();
+      this.loadMoreBtn = null;
+    }
+
+    // Add load more button if there are more messages
+    const remaining = this.displayEvents.length - (this.currentPage * MESSAGES_PER_PAGE);
+    if (remaining > 0) {
+      this.loadMoreBtn = h('div', { className: 'load-more-container py-4 text-center' }, [
+        h('button', {
+          className: 'load-more-btn px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded text-sm',
+          onClick: () => this.loadMoreMessages()
+        }, [`Load ${Math.min(remaining, MESSAGES_PER_PAGE)} more (${remaining} remaining)`])
+      ]);
+      this.messagesWrapper.appendChild(this.loadMoreBtn);
+    }
+  }
+
+  /**
+   * Get time group label for timestamp
+   * @param {number} timestamp
+   * @returns {string}
+   */
+  getTimeGroup(timestamp) {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffHours = diffMs / (1000 * 60 * 60);
+
+    // Format time
+    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    if (diffHours < 24 && date.getDate() === now.getDate()) {
+      // Today - group by hour
+      const hour = date.getHours();
+      const period = hour < 12 ? 'Morning' : hour < 17 ? 'Afternoon' : 'Evening';
+      return `Today ${period} (${timeStr})`;
+    } else if (diffHours < 48) {
+      return `Yesterday (${timeStr})`;
+    } else {
+      // Older - show date
+      return date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) + ` (${timeStr})`;
+    }
+  }
+
+  /**
+   * Jump to position in message list
+   * @param {'start'|'end'} position
+   */
+  jumpToPosition(position) {
+    if (!this.scrollContainer) return;
+
+    if (position === 'start') {
+      this.scrollContainer.scrollTop = 0;
+    } else if (position === 'end') {
+      // Load all remaining messages first
+      while (this.currentPage * MESSAGES_PER_PAGE < this.displayEvents.length) {
+        this.loadMoreMessages();
+      }
+      // Then scroll to bottom
+      requestAnimationFrame(() => {
+        this.scrollContainer.scrollTop = this.scrollContainer.scrollHeight;
+      });
+    }
   }
 
   /**
@@ -284,11 +415,28 @@ export class SessionDetail extends EventEmitter {
   }
 
   /**
-   * Scroll to a specific message
+   * Scroll to a specific message (loads more if needed)
    * @param {string} messageId
    */
   scrollToMessage(messageId) {
-    const messageView = this.messageViews.get(messageId);
+    // Check if message is already loaded
+    let messageView = this.messageViews.get(messageId);
+
+    if (!messageView && this.displayEvents) {
+      // Find the message index and load pages until we reach it
+      const messageIndex = this.displayEvents.findIndex(
+        (e) => (e.data?.uuid || String(e.timestamp)) === messageId
+      );
+
+      if (messageIndex >= 0) {
+        const targetPage = Math.floor(messageIndex / MESSAGES_PER_PAGE) + 1;
+        while (this.currentPage < targetPage) {
+          this.loadMoreMessages();
+        }
+        messageView = this.messageViews.get(messageId);
+      }
+    }
+
     if (messageView) {
       messageView.element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }

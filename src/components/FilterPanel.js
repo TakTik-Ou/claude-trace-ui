@@ -25,11 +25,16 @@ export class FilterPanel extends EventEmitter {
     /** @type {string[]} */
     this.projects = [];
     /** @type {FilterState} */
-    // Default: no date filter (show all sessions)
+    // Default: yesterday to now (show recent sessions)
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
+
     this.filters = {
       projectName: null,
-      dateFrom: null,
-      dateTo: null,
+      dateFrom: yesterday.getTime(),
+      dateTo: now.getTime(),
       sortBy: 'date',
       sortOrder: 'desc'
     };
@@ -107,7 +112,7 @@ export class FilterPanel extends EventEmitter {
     this.filterContent.appendChild(sortSection);
 
     // Action buttons row
-    const buttonRow = h('div', { className: 'flex gap-2 mt-3' });
+    const buttonRow = h('div', { className: 'flex flex-wrap gap-2 mt-3' });
 
     // Apply filters button
     const applyBtn = h(
@@ -116,22 +121,31 @@ export class FilterPanel extends EventEmitter {
         className: 'apply-filters-btn flex-1 px-3 py-2 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded',
         onClick: () => this.applyFilters()
       },
-      ['Apply Filters']
+      ['Apply']
     );
     buttonRow.appendChild(applyBtn);
 
-    // Clear filters button
-    if (this.hasActiveFilters()) {
-      const clearBtn = h(
-        'button',
-        {
-          className: 'clear-filters-btn flex-1 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 rounded border border-gray-600',
-          onClick: () => this.clearFilters()
-        },
-        ['Clear Filters']
-      );
-      buttonRow.appendChild(clearBtn);
-    }
+    // Show All button (removes date restrictions)
+    const showAllBtn = h(
+      'button',
+      {
+        className: 'show-all-btn flex-1 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 rounded border border-gray-600',
+        onClick: () => this.showAllSessions()
+      },
+      ['All Time']
+    );
+    buttonRow.appendChild(showAllBtn);
+
+    // Reset to defaults button
+    const resetBtn = h(
+      'button',
+      {
+        className: 'reset-btn flex-1 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 rounded border border-gray-600',
+        onClick: () => this.resetToDefaults()
+      },
+      ['Reset']
+    );
+    buttonRow.appendChild(resetBtn);
 
     this.filterContent.appendChild(buttonRow);
   }
@@ -300,10 +314,39 @@ export class FilterPanel extends EventEmitter {
   }
 
   /**
-   * Clear all filters
+   * Show all sessions (remove date filter)
+   */
+  showAllSessions() {
+    this.filters.dateFrom = null;
+    this.filters.dateTo = null;
+    this.emitChange();
+    this.render();
+  }
+
+  /**
+   * Reset to default filters (yesterday to now)
+   */
+  resetToDefaults() {
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
+
+    this.filters = {
+      projectName: null,
+      dateFrom: yesterday.getTime(),
+      dateTo: now.getTime(),
+      sortBy: 'date',
+      sortOrder: 'desc'
+    };
+    this.emitChange();
+    this.render();
+  }
+
+  /**
+   * Clear all filters (same as showAllSessions but also clears project)
    */
   clearFilters() {
-    // Reset to default: no date filter (show all)
     this.filters = {
       projectName: null,
       dateFrom: null,
