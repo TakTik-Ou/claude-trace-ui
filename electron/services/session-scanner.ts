@@ -34,8 +34,14 @@ export interface ScanProgress {
 
 /**
  * Get the Claude projects directory path
+ * Supports CLAUDE_PROJECTS_PATH environment variable for custom locations
  */
 export function getClaudeProjectsPath(): string {
+  // Allow custom path via environment variable (for backups, testing, etc.)
+  const customPath = process.env.CLAUDE_PROJECTS_PATH;
+  if (customPath) {
+    return customPath;
+  }
   return path.join(homedir(), '.claude', 'projects');
 }
 

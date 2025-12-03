@@ -1,8 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs/promises';
-import { homedir } from 'os';
-import { scanForSessions, type SessionSummary } from './services/session-scanner.js';
+import { scanForSessions, getClaudeProjectsPath, type SessionSummary } from './services/session-scanner.js';
 import { parseSessionFile } from './services/jsonl-parser.js';
 import * as indexManager from './services/index-manager.js';
 
@@ -122,7 +121,7 @@ ipcMain.handle('session:load', async (_event, filePath: string) => {
     }
 
     // Security: Ensure path is within Claude projects directory
-    const claudeProjectsPath = path.join(homedir(), '.claude', 'projects');
+    const claudeProjectsPath = getClaudeProjectsPath();
     const resolvedPath = path.resolve(filePath);
 
     if (!resolvedPath.startsWith(claudeProjectsPath)) {

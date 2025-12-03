@@ -138,11 +138,38 @@ open "/Applications/Claude Trace UI.app"
 
 ### No Sessions Found
 
-The app looks for Claude Code sessions in `~/.claude/projects/`. Ensure:
+The app looks for Claude Code sessions in `~/.claude/projects/`. This is the **standard location** for all Claude Code installations on macOS - it will work automatically on any Mac where Claude Code has been used.
 
-1. Claude Code has been used at least once
+Ensure:
+
+1. Claude Code has been used at least once on this Mac
 2. Session files exist in `~/.claude/projects/<project-path>/`
 3. Session files are `.jsonl` format
+
+To verify sessions exist:
+
+```bash
+# Check if Claude Code directory exists
+ls -la ~/.claude/projects/
+
+# Count session files
+find ~/.claude/projects -name "*.jsonl" | wc -l
+```
+
+### Viewing Sessions from a Different Location
+
+If you want to view sessions from a backup or a different location (e.g., copied from another Mac), you can set a custom path using an environment variable:
+
+```bash
+# Set custom sessions path before launching
+CLAUDE_PROJECTS_PATH="/path/to/backup/.claude/projects" npm run dev:electron
+```
+
+This is useful for:
+
+- Viewing sessions from a Time Machine backup
+- Analyzing sessions copied from another machine
+- Testing with sample session files
 
 ### Electron Won't Start from Claude Code Terminal
 
