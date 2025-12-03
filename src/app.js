@@ -167,6 +167,7 @@ function initializeComponents(searchContainer, filterContainer, listContainer, d
   sessionList = new SessionList(listContainer);
   sessionList.on('select', handleSessionSelect);
   sessionList.on('refresh', () => loadSessions(true));
+  sessionList.on('exportAll', handleExportAll);
 
   // Initialize session detail
   sessionDetail = new SessionDetail(detailContainer);
@@ -266,6 +267,45 @@ async function handleSessionSelect(summary) {
 function handleExportSession(session) {
   if (session && exportDialog) {
     exportDialog.openForSession(session);
+  }
+}
+
+/**
+ * Handle export all visible sessions
+ * @param {import('./types/session').SessionSummary[]} sessionSummaries
+ */
+async function handleExportAll(sessionSummaries) {
+  if (!sessionSummaries || sessionSummaries.length === 0 || !exportDialog) {
+    return;
+  }
+
+  // Load full session data for each summary
+  loadingIndicator?.show(`Loading ${sessionSummaries.length} sessions for export...`);
+
+  try {
+    const sessions = await Promise.all(
+      sessionSummaries.map(async (summary) => {
+        try {
+          return await ipcClient.loadSession(summary.filePath);
+        } catch (err) {
+          console.warn(`Failed to load session ${summary.uuid}:`, err);
+          return null;
+        }
+      })
+    );
+
+    const validSessions = sessions.filter(Boolean);
+
+    if (validSessions.length > 0) {
+      loadingIndicator?.hide();
+      exportDialog.openForBatch(validSessions);
+    } else {
+      loadingIndicator?.hide();
+      console.error('No sessions could be loaded for export');
+    }
+  } catch (error) {
+    loadingIndicator?.hide();
+    console.error('Failed to load sessions for export:', error);
   }
 }
 

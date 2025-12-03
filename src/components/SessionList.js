@@ -6,6 +6,7 @@
 import { h, clearChildren, toggleClass } from '../utils/dom-helpers.js';
 import { formatRelativeTime, formatDuration } from '../utils/date-formatter.js';
 import { EventEmitter } from '../lib/EventEmitter.js';
+import { PreferenceStore } from '../lib/PreferenceStore.js';
 
 /**
  * @typedef {import('../types/session').SessionSummary} SessionSummary
@@ -13,6 +14,21 @@ import { EventEmitter } from '../lib/EventEmitter.js';
 
 const ITEM_HEIGHT = 72; // px per session item
 const GROUP_HEADER_HEIGHT = 40; // px per group header
+
+/**
+ * Format large numbers with K/M suffixes
+ * @param {number} num
+ * @returns {string}
+ */
+function formatNumber(num) {
+  if (num >= 1_000_000) {
+    return (num / 1_000_000).toFixed(1) + 'M';
+  }
+  if (num >= 1_000) {
+    return (num / 1_000).toFixed(0) + 'k';
+  }
+  return num.toLocaleString();
+}
 
 export class SessionList extends EventEmitter {
   /**
@@ -31,10 +47,16 @@ export class SessionList extends EventEmitter {
     this.groupByProject = true; // Group sessions by project
     /** @type {HTMLElement|null} */
     this.sessionCountEl = null;
+    /** @type {PreferenceStore} */
+    this.preferenceStore = new PreferenceStore();
     /** @type {Set<string>} */
-    this.expandedGroups = new Set(); // Track expanded project groups (collapsed by default)
+    this.expandedGroups = this.preferenceStore.getExpandedGroups(); // Load from preferences
     /** @type {boolean} */
     this.initialRenderDone = false; // Track if initial render completed
+    /** @type {string|null} */
+    this.lastKeyPress = null; // Track last key for 'gg' sequence
+    /** @type {number|null} */
+    this.lastKeyTime = null; // Track timing for 'gg' sequence
 
     this.init();
   }
@@ -45,8 +67,10 @@ export class SessionList extends EventEmitter {
     this.container.appendChild(header);
 
     // Create list container - needs min-h-0 for flex overflow to work
+    // Add tabindex to make it focusable for keyboard navigation
     this.listContainer = h('div', {
-      className: 'session-list-container flex-1 min-h-0 overflow-y-auto'
+      className: 'session-list-container flex-1 min-h-0 overflow-y-auto',
+      tabIndex: '0'
     });
     this.container.appendChild(this.listContainer);
 
@@ -56,6 +80,66 @@ export class SessionList extends EventEmitter {
       { className: 'empty-state p-8 text-center text-gray-500' },
       [h('p', { className: 'text-lg mb-2' }, ['No sessions found']), h('p', { className: 'text-sm' }, ['Sessions will appear here once you use Claude Code'])]
     );
+
+    // Setup keyboard navigation
+    this.setupKeyboardNavigation();
+  }
+
+  /**
+   * Setup Vim-style keyboard navigation
+   */
+  setupKeyboardNavigation() {
+    this.keydownHandler = (e) => {
+      // Only handle if list container has focus or is the active element
+      if (document.activeElement !== this.listContainer && !this.listContainer.contains(document.activeElement)) {
+        return;
+      }
+
+      const key = e.key;
+      const now = Date.now();
+
+      // Handle 'gg' sequence for first item (two 'g' presses within 500ms)
+      if (key === 'g') {
+        if (this.lastKeyPress === 'g' && this.lastKeyTime && (now - this.lastKeyTime) < 500) {
+          e.preventDefault();
+          this.navigate('first');
+          this.lastKeyPress = null;
+          this.lastKeyTime = null;
+          return;
+        }
+        this.lastKeyPress = 'g';
+        this.lastKeyTime = now;
+        return;
+      }
+
+      // Reset 'g' sequence if another key is pressed
+      if (this.lastKeyPress === 'g') {
+        this.lastKeyPress = null;
+        this.lastKeyTime = null;
+      }
+
+      // Handle navigation keys
+      switch (key) {
+        case 'j':
+          e.preventDefault();
+          this.navigate('down');
+          break;
+        case 'k':
+          e.preventDefault();
+          this.navigate('up');
+          break;
+        case 'G':
+          e.preventDefault();
+          this.navigate('last');
+          break;
+        case 'Enter':
+          e.preventDefault();
+          this.confirmSelection();
+          break;
+      }
+    };
+
+    this.listContainer.addEventListener('keydown', this.keydownHandler);
   }
 
   createHeader() {
@@ -110,6 +194,25 @@ export class SessionList extends EventEmitter {
       ]
     );
 
+    // Export all button
+    const exportBtn = h(
+      'button',
+      {
+        className: 'export-btn p-1.5 hover:bg-gray-700 rounded text-gray-400 hover:text-gray-200',
+        onClick: () => this.emit('exportAll', this.filteredSessions),
+        title: 'Export all visible sessions'
+      },
+      [
+        h('svg', { className: 'w-4 h-4', viewBox: '0 0 20 20', fill: 'currentColor' }, [
+          h('path', {
+            fillRule: 'evenodd',
+            d: 'M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z',
+            clipRule: 'evenodd'
+          })
+        ])
+      ]
+    );
+
     // Refresh button
     const refreshBtn = h(
       'button',
@@ -131,7 +234,7 @@ export class SessionList extends EventEmitter {
 
     return h('div', { className: 'session-list-header px-4 py-2 border-b border-gray-700 flex items-center justify-between' }, [
       sessionCount,
-      h('div', { className: 'flex items-center gap-1' }, [expandCollapseBtn, groupToggle, refreshBtn])
+      h('div', { className: 'flex items-center gap-1' }, [expandCollapseBtn, groupToggle, exportBtn, refreshBtn])
     ]);
   }
 
@@ -187,9 +290,16 @@ export class SessionList extends EventEmitter {
     // Sessions are pre-filtered by SearchIndex, just use them directly
     this.filteredSessions = [...this.sessions];
 
-    // Update session count
+    // Calculate total tokens from filtered sessions (skip sessions with no token data)
+    const totalTokens = this.filteredSessions
+      .filter(s => s.totalTokens > 0)
+      .reduce((sum, s) => sum + s.totalTokens, 0);
+
+    // Update session count with token information
     if (this.sessionCountEl) {
-      this.sessionCountEl.textContent = `${this.filteredSessions.length} session${this.filteredSessions.length !== 1 ? 's' : ''}`;
+      const sessionText = `${this.filteredSessions.length} session${this.filteredSessions.length !== 1 ? 's' : ''}`;
+      const tokenText = totalTokens > 0 ? ` • ${formatNumber(totalTokens)} tokens` : '';
+      this.sessionCountEl.textContent = sessionText + tokenText;
     }
 
     // Render list
@@ -237,10 +347,29 @@ export class SessionList extends EventEmitter {
       return bLatest - aLatest;
     });
 
+    // Check if search is active
+    const isSearchActive = this.filteredSessions.length < this.sessions.length;
+
     // Render each group
     for (const [projectName, sessions] of sortedGroups) {
       // Groups are collapsed by default (expanded if in expandedGroups set)
       const isExpanded = this.expandedGroups.has(projectName);
+
+      // Build header children elements
+      const headerChildren = [
+        h('span', { className: 'text-gray-400 text-sm' }, [isExpanded ? '▼' : '▶']),
+        h('span', { className: 'text-blue-400 font-medium text-sm flex-1 truncate' }, [projectName]),
+        h('span', { className: 'text-gray-500 text-xs' }, [`${sessions.length} session${sessions.length !== 1 ? 's' : ''}`])
+      ];
+
+      // Add match indicator badge for collapsed groups when search is active
+      if (!isExpanded && isSearchActive && sessions.length > 0) {
+        headerChildren.push(
+          h('span', { className: 'bg-yellow-600/20 text-yellow-400 text-xs px-2 py-0.5 rounded-full border border-yellow-600/30' }, [
+            `${sessions.length} match${sessions.length !== 1 ? 'es' : ''}`
+          ])
+        );
+      }
 
       // Group header
       const header = h(
@@ -249,11 +378,7 @@ export class SessionList extends EventEmitter {
           className: 'group-header sticky top-0 bg-gray-900 border-b border-gray-700 px-3 py-2 cursor-pointer hover:bg-gray-800 flex items-center gap-2 z-10',
           onClick: () => this.toggleGroup(projectName)
         },
-        [
-          h('span', { className: 'text-gray-400 text-sm' }, [isExpanded ? '▼' : '▶']),
-          h('span', { className: 'text-blue-400 font-medium text-sm flex-1 truncate' }, [projectName]),
-          h('span', { className: 'text-gray-500 text-xs' }, [`${sessions.length} session${sessions.length !== 1 ? 's' : ''}`])
-        ]
+        headerChildren
       );
       this.listContainer.appendChild(header);
 
@@ -287,6 +412,7 @@ export class SessionList extends EventEmitter {
     } else {
       this.expandedGroups.add(projectName);
     }
+    this.preferenceStore.setExpandedGroups(this.expandedGroups);
     this.renderList();
   }
 
@@ -298,6 +424,7 @@ export class SessionList extends EventEmitter {
       const projectName = session.projectName || 'Unknown Project';
       this.expandedGroups.add(projectName);
     }
+    this.preferenceStore.setExpandedGroups(this.expandedGroups);
     this.renderList();
   }
 
@@ -306,6 +433,7 @@ export class SessionList extends EventEmitter {
    */
   collapseAllGroups() {
     this.expandedGroups.clear();
+    this.preferenceStore.setExpandedGroups(this.expandedGroups);
     this.renderList();
   }
 
@@ -406,6 +534,10 @@ export class SessionList extends EventEmitter {
    * Cleanup
    */
   destroy() {
+    // Remove keyboard event listener
+    if (this.keydownHandler && this.listContainer) {
+      this.listContainer.removeEventListener('keydown', this.keydownHandler);
+    }
     this.removeAllListeners();
     clearChildren(this.container);
   }

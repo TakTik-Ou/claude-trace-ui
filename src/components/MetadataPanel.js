@@ -104,19 +104,19 @@ export class MetadataPanel extends EventEmitter {
    */
   createTokenSection() {
     const { tokenUsage } = this.session;
-    const hasTokens = tokenUsage && (tokenUsage.input > 0 || tokenUsage.output > 0);
+    const hasTokenData = tokenUsage && (tokenUsage.input != null || tokenUsage.output != null);
 
     const section = h('div', { className: 'p-3 border-b border-gray-700' }, [h('h4', { className: 'text-xs font-medium text-gray-500 uppercase mb-2' }, ['Token Usage'])]);
 
-    if (!hasTokens) {
-      section.appendChild(h('p', { className: 'text-sm text-gray-500' }, ['No token data available']));
+    if (!hasTokenData) {
+      section.appendChild(h('p', { className: 'text-sm text-gray-500' }, ['N/A']));
       return section;
     }
 
-    const inputTokens = tokenUsage.input || 0;
-    const outputTokens = tokenUsage.output || 0;
+    const inputTokens = tokenUsage.input ?? 0;
+    const outputTokens = tokenUsage.output ?? 0;
     const totalTokens = inputTokens + outputTokens;
-    const cacheTokens = tokenUsage.cacheCreation || 0;
+    const cacheTokens = tokenUsage.cacheCreation ?? 0;
     const cost = estimateCost(inputTokens, outputTokens);
 
     // Token bars
@@ -227,13 +227,9 @@ export class MetadataPanel extends EventEmitter {
       { label: 'Project', value: projectName || 'Unknown' },
       { label: 'Started', value: formatDateTime(createdAt) },
       { label: 'Last Updated', value: formatDateTime(updatedAt) },
-      { label: 'Session ID', value: id ? id.slice(0, 8) + '...' : 'N/A' }
+      { label: 'Session ID', value: id ? id.slice(0, 8) + '...' : 'N/A' },
+      { label: 'Git Branch', value: gitBranch || 'N/A' }
     ];
-
-    // Add git branch if available
-    if (gitBranch) {
-      items.push({ label: 'Git Branch', value: gitBranch });
-    }
 
     const list = h(
       'div',
