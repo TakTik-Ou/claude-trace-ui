@@ -25,16 +25,11 @@ export class FilterPanel extends EventEmitter {
     /** @type {string[]} */
     this.projects = [];
     /** @type {FilterState} */
-    // Default: yesterday to now for date range
-    const now = new Date();
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    yesterday.setHours(0, 0, 0, 0);
-
+    // Default: no date filter (show all sessions)
     this.filters = {
       projectName: null,
-      dateFrom: yesterday.getTime(),
-      dateTo: now.getTime(),
+      dateFrom: null,
+      dateTo: null,
       sortBy: 'date',
       sortOrder: 'desc'
     };
@@ -125,31 +120,20 @@ export class FilterPanel extends EventEmitter {
     );
     buttonRow.appendChild(applyBtn);
 
-    // Show All button (removes date filter to show all sessions)
-    const showAllBtn = h(
-      'button',
-      {
-        className: 'show-all-btn flex-1 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 rounded border border-gray-600',
-        onClick: () => this.showAllSessions()
-      },
-      ['Show All']
-    );
-    buttonRow.appendChild(showAllBtn);
-
-    this.filterContent.appendChild(buttonRow);
-
-    // Clear filters button (only show if active)
+    // Clear filters button
     if (this.hasActiveFilters()) {
       const clearBtn = h(
         'button',
         {
-          className: 'clear-filters-btn w-full mt-2 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-gray-700 rounded border border-gray-600',
+          className: 'clear-filters-btn flex-1 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 rounded border border-gray-600',
           onClick: () => this.clearFilters()
         },
-        ['Reset to Defaults']
+        ['Clear Filters']
       );
-      this.filterContent.appendChild(clearBtn);
+      buttonRow.appendChild(clearBtn);
     }
+
+    this.filterContent.appendChild(buttonRow);
   }
 
   /**
@@ -316,29 +300,14 @@ export class FilterPanel extends EventEmitter {
   }
 
   /**
-   * Show all sessions (clear date filter)
-   */
-  showAllSessions() {
-    this.filters.dateFrom = null;
-    this.filters.dateTo = null;
-    this.emitChange();
-    this.render();
-  }
-
-  /**
    * Clear all filters
    */
   clearFilters() {
-    // Reset to default: yesterday to now
-    const now = new Date();
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    yesterday.setHours(0, 0, 0, 0);
-
+    // Reset to default: no date filter (show all)
     this.filters = {
       projectName: null,
-      dateFrom: yesterday.getTime(),
-      dateTo: now.getTime(),
+      dateFrom: null,
+      dateTo: null,
       sortBy: 'date',
       sortOrder: 'desc'
     };
