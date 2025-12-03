@@ -2,6 +2,8 @@
 
 A desktop application for viewing and browsing Claude Code session files from `~/.claude/projects`.
 
+![Claude Trace UI Screenshot](docs/images/screenshot.png)
+
 ## Features
 
 - **Session Browser**: View all Claude Code sessions grouped by project
